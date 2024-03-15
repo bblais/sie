@@ -41,9 +41,9 @@ model.plot_chains()
 
 model.best_estimates()
 
+model.plot_chains('σ')
 
-
-
+model.plot_distributions()
 
 
 

@@ -53,6 +53,32 @@ def timeit(reset=False):
 
 
 #| export
+def histogram(y,bins=50,plot=True):
+    N,bins=np.histogram(y,bins)
+    
+    dx=bins[1]-bins[0]
+    if dx==0.0:  #  all in 1 bin!
+        val=bins[0]
+        bins=np.linspace(val-abs(val),val+abs(val),50)
+        N,bins=np.histogram(y,bins)
+    
+    dx=bins[1]-bins[0]
+    x=bins[0:-1]+(bins[1]-bins[0])/2.0
+    
+    y=N*1.0/np.sum(N)/dx
+    
+    if plot:
+        py.plot(x,y,'o-')
+        yl=py.gca().get_ylim()
+        py.gca().set_ylim([0,yl[1]])
+        xl=py.gca().get_xlim()
+        if xl[0]<=0 and xl[0]>=0:    
+            py.plot([0,0],[0,yl[1]],'k--')
+
+    return x,y
+
+
+#| export
 def Normal(μ,σ,sum=False):
     
     def _Normal(x):
@@ -448,26 +474,48 @@ Likelihood
         return self.percentiles(p=[16, 50, 84],*args)
 
 
+    def plot_distributions(self,*args,**kwargs):
+        if not args:
+            args=[key for key in self.parameters if len(self.parameters[key])==1]
+        else:
+            for arg in args:
+                assert arg in self.parameters
 
+        result=[]
+        for key in args:
+            s=self.slices.__getattribute__(key)
+            sub_sample=self.samples[:,s]
+            for i in range(len(self.parameters[key])):
+                sample=sub_sample[:, i].ravel()
+            
+                figure(figsize=(12,4))
 
+                x,y=histogram(sample,bins=200,plot=False)
+                plot(x,y,'.-')
+                fill_between(x,y,facecolor='blue', alpha=0.2)
 
+                HDI=np.percentile(sample, [2.5, 50, 97.5],axis=0)
+                yl=gca().get_ylim()
+                text((HDI[0]+HDI[2])/2, 0.15*yl[1],'95% HDI', ha='center', va='center',fontsize=12)
+                plot(HDI,[yl[1]*.1,yl[1]*.1,yl[1]*.1],'k.-',linewidth=1)
+                for v in HDI:
+                    if v<0.005:
+                        text(v, 0.05*yl[1],'%.3g' % v, ha='center', va='center', 
+                             fontsize=12)
+                    else:
+                        text(v, 0.05*yl[1],'%.3f' % v, ha='center', va='center', 
+                             fontsize=12)
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                ylabel(r'$p(%s|{\rm data})$' % key)
+                if len(self.parameters[key])==1:
+                    gca().set_xlabel(f'{key}' )
+                else:
+                    gca().set_xlabel(f'{key}$_{i}$')
+    
+                result.append((key,i,HDI))
+        
+        return result
+    
 
 #| hide
 import nbdev; nbdev.nbdev_export()

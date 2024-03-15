@@ -44,7 +44,13 @@ for key in args:
 
 result
 
+model.plot_distributions()
 
+
+
+
+
+raise ValueError
 
 model=StatsModel()
 model.add_data(x=x,y=y)
