@@ -192,7 +192,7 @@ class StatsModel(object):
             rest=param.rest
             s+=f"    _value+={rest}({name})\n"
         
-        s+="\n    return _value\n"
+        s+="\n    return _value.sum()\n"
         
         
         self.function_str=s
@@ -426,6 +426,28 @@ Likelihood
     
     def __call__(self,θ):
         return self._lnposterior(θ)
+    
+    def percentiles(self,p=[16, 50, 84],*args):
+        if not args:
+            args=[key for key in self.parameters if len(self.parameters[key])==1]
+        else:
+            for arg in args:
+                assert arg in self.parameters
+        
+        self.median_values=np.percentile(self.samples,50,axis=0)
+        
+        result={}
+        for key in args:
+            s=self.slices.__getattribute__(key)
+            sub_sample=self.samples[:,s]
+            result[key]=np.percentile(sub_sample,[16,50,84],axis=0)
+            
+        return result
+        
+    def best_estimates(self,*args):
+        return self.percentiles(p=[16, 50, 84],*args)
+
+
 
 
 

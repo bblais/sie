@@ -1,10 +1,5 @@
-#| hide
-#skip
-! [ -e /content ] && pip install -Uqq pyndamics3 emcee # upgrade pyndamics3 on colab
-
 %matplotlib inline
 from pylab import *
-
 from sie.mcmc import StatsModel
 
 xy1="""
@@ -39,21 +34,30 @@ print(model.make_func())
 model.run_mcmc(800,repeat=3)
 model.plot_chains()
 
-model.best_estimates()
+self=model
+args=[key for key in self.parameters if len(self.parameters[key])==1]
+result={}
+for key in args:
+    s=self.slices.__getattribute__(key)
+    sub_sample=self.samples[:,s]
+    result[key]=np.percentile(sub_sample,[16,50,84],axis=0)
+
+result
 
 
 
+model=StatsModel()
+model.add_data(x=x,y=y)
+model.add("m ~ Normal(0,10)")
+model.add("b ~ Normal(0,10)")
+model.add("σ ~ Jeffreys()")
+model.add("res ~ Normal(m*x+b-y,σ)")   # this doesn't work yet
+model.initialize()
+model
 
+print(model.make_func())
 
-
-
-
-
-
-
-
-
-#| hide
-import nbdev; nbdev.nbdev_export()
+model.run_mcmc(800,repeat=3)
+model.plot_chains()
 
 
