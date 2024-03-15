@@ -1,0 +1,9 @@
+project:
+  output-dir: _docs
+
+website:
+  title: "sie"
+  site-url: "https://bblais.github.io/sie"
+  description: "Statistical Inference for Everyone"
+  repo-branch: main
+  repo-url: "https://github.com/bblais/sie"
