@@ -1,0 +1,7 @@
+website:
+  sidebar:
+    contents:
+      - index.ipynb
+      - 00_core.ipynb
+      - 01_mcmc.ipynb
+      - 02_tutorial_mcmc.ipynb

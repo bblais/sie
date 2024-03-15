@@ -1,0 +1,7 @@
+#| default_exp core
+
+#| export
+def foo(): pass
+
+#| hide
+import nbdev; nbdev.nbdev_export()

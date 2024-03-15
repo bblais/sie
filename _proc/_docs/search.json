@@ -1,0 +1,82 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "sie",
+    "section": "",
+    "text": "This file will become your README and also the index of your documentation.",
+    "crumbs": [
+      "sie"
+    ]
+  },
+  {
+    "objectID": "index.html#install",
+    "href": "index.html#install",
+    "title": "sie",
+    "section": "Install",
+    "text": "Install\npip install sie",
+    "crumbs": [
+      "sie"
+    ]
+  },
+  {
+    "objectID": "index.html#how-to-use",
+    "href": "index.html#how-to-use",
+    "title": "sie",
+    "section": "How to use",
+    "text": "How to use\nMore later!\n\n1+1\n\n2",
+    "crumbs": [
+      "sie"
+    ]
+  },
+  {
+    "objectID": "01_mcmc.html",
+    "href": "01_mcmc.html",
+    "title": "MCMC part of the libary",
+    "section": "",
+    "text": "from pylab import *\nimport emcee\nimport warnings\nimport time\n\ndef time2str(tm):\n    \n    frac=tm-int(tm)\n    tm=int(tm)\n    \n    s=''\n    sc=tm % 60\n    tm=tm//60\n    \n    mn=tm % 60\n    tm=tm//60\n    \n    hr=tm % 24\n    tm=tm//24\n    dy=tm\n\n    if (dy&gt;0):\n        s=s+\"%d d, \" % dy\n\n    if (hr&gt;0):\n        s=s+\"%d h, \" % hr\n\n    if (mn&gt;0):\n        s=s+\"%d m, \" % mn\n\n\n    s=s+\"%.2f s\" % (sc+frac)\n\n    return s\n\ndef timeit(reset=False):\n    global _timeit_data\n    try:\n        _timeit_data\n    except NameError:\n        _timeit_data=time.time()\n\n    if reset:\n        _timeit_data=time.time()\n\n    else:\n        return time2str(time.time()-_timeit_data)",
+    "crumbs": [
+      "MCMC part of the libary"
+    ]
+  },
+  {
+    "objectID": "01_mcmc.html#distribution-log-likelihoods",
+    "href": "01_mcmc.html#distribution-log-likelihoods",
+    "title": "MCMC part of the libary",
+    "section": "Distribution Log Likelihoods",
+    "text": "Distribution Log Likelihoods\n\ndef Normal(μ,σ,sum=False):\n    \n    def _Normal(x):\n        try:\n            N=len(x)\n        except TypeError:\n            N=1\n\n        values=-0.5*(x-μ)**2/σ**2 - 0.5*np.log(σ**2)-0.5*np.log(2*np.pi)\n        \n        if sum:\n            return np.sum(values)\n        else:\n            return values\n        \n    return _Normal\n\ndef HalfNormal(μ,σ,sum=False):\n    \n    def _Normal(x):\n        try:\n            N=len(x)\n            if any(x&lt;0):\n                return -np.inf\n        except TypeError:\n            N=1\n            if x&lt;0:\n                return -np.inf\n            \n        values=-0.5*(x-μ)**2/σ**2 - 0.5*np.log(σ**2)-0.5*np.log(2*np.pi)\n        if sum:\n            return np.sum(values)\n        else:\n            return values\n        \n    return _Normal\n\n\ndef Jeffreys(sum=False):\n    \n    def _Jeffreys(x):\n        if x&gt;0.0:\n            values=-np.log(x)\n        else:\n            values=-np.inf\n\n        if sum:\n            return np.sum(values)\n        else:\n            return values    \n        \n    return _Jeffreys",
+    "crumbs": [
+      "MCMC part of the libary"
+    ]
+  },
+  {
+    "objectID": "01_mcmc.html#main-mcmc-definitions",
+    "href": "01_mcmc.html#main-mcmc-definitions",
+    "title": "MCMC part of the libary",
+    "section": "Main MCMC Definitions",
+    "text": "Main MCMC Definitions\n\nclass Parameter(object):\n    \n    def __init__(self,eqn,initial_value=None):\n        self.eqn=eqn\n        name,rest=eqn.split('~')\n        self.name=name.strip()\n        self.rest=rest.strip()\n        self.length=1\n        self.lower=-np.inf\n        \n        if 'Jeffreys' in self.rest:\n            self.lower=0.0\n            if initial_value is None:\n                self.initial_value=1.0\n\n        if initial_value is None:\n            self.initial_value=0.0\n        else:\n            self.initial_value=initial_value\n        \n        \n    def __repr__(self):\n        return self.name\n        \n    def __len__(self):\n        return self.length\n    \n        \nclass StatsModel(object):\n    def __init__(self):\n        self.parameters={}\n        self.data={}\n        self.prior_parameters=[]\n        self.likelihood_parameters=[]\n        self.nwalkers=100\n        self.sampler=None\n        self.slices=None\n        self.burn_percentage=0.25\n        self.warnings=[]\n        self.last_pos=None\n    \n    \n    def add_data(self,**kwargs):\n        self.data.update(**kwargs) \n        \n    def make_func(self):\n        s=\"def _lnprior(θ,slices):\\n\"\n        \n        for param in self.prior_parameters:\n            name=param.name\n            s+=f\"    {name}=θ[slices.{name}]\\n\" \n\n        s+=\"\\n    _value=0\\n\\n\"\n        \n        for param in self.prior_parameters:\n            name=param.name\n            rest=param.rest\n            s+=f\"    _value+={rest}({name})\\n\" \n        \n        \n        s+=\"\\n    return _value\\n\"\n        \n        s+=\"\\n\\n\"\n        \n        s+=\"def _lnlikelihood(θ,data,slices):\\n\"\n        \n        for key in self.data:\n            s+=f\"    {key}=data['{key}']\\n\"\n        s+=\"\\n\"\n\n        for param in self.prior_parameters:\n            name=param.name\n            s+=f\"    {name}=θ[slices.{name}]\\n\" \n        s+=\"\\n\"\n        for param in self.likelihood_parameters:\n            name=param.name\n            s+=f\"    {name}=θ[slices.{name}]\\n\" \n        \n        s+=\"\\n    _value=0\\n\\n\"\n        \n        for param in self.likelihood_parameters:\n            name=param.name\n            rest=param.rest\n            s+=f\"    _value+={rest}({name})\\n\"\n        \n        s+=\"\\n    return _value\\n\"\n        \n        \n        self.function_str=s\n        \n        exec(s)\n\n        self._lnprior=locals()['_lnprior']\n        self._lnlikelihood=locals()['_lnlikelihood']\n        \n        return s\n        \n    def add(self,eqn):\n        from io import StringIO\n        import tokenize\n        \n        param=Parameter(eqn)\n        self.parameters[param.name]=param\n        \n        tokens=[token[1] for token in tokenize.generate_tokens(StringIO(eqn).readline) if token[1]]\n        found=False\n        found_key=None\n        for key in self.data:\n            if key in tokens:\n                found=True\n                found_key=key\n                \n        if found:\n            self.likelihood_parameters.append(param)\n            if 'sum' in eqn:\n                self.likelihood_parameters[-1].length=1\n            else:\n                self.likelihood_parameters[-1].length=len(self.data[found_key])\n                \n        else:\n            self.prior_parameters.append(param)\n                \n                \n        \n    def __repr__(self):\n        S=\"\"\"\nParameters\n----------\n\nData\n----\n\nPrior\n-----\n\nLikelihood\n----------\n\n        \"\"\" % (self.parameters,list(self.data.keys()),\n               [param.eqn for param in self.prior_parameters],\n               [param.eqn for param in self.likelihood_parameters]) \n        \n        return S\n    \n    def initialize(self):\n        from collections import namedtuple\n        self.make_func()\n        \n        names=','.join(self.parameters)\n        slicetuple = namedtuple(\"slicetuple\", names)\n        lengths=cumsum([0]+[len(self.parameters[key]) for key in self.parameters])\n        slices={}\n        for i,key in enumerate(self.parameters):\n            slices[key]=np.s_[lengths[i]:lengths[i+1]]\n        self.slices=slicetuple(**slices)\n        self.parameter_length=sum([len(self.parameters[key]) for key in self.parameters])\n        \n    def set_initial_values(self,method='ball',**kwargs):\n        N=300\n        ndim=self.parameter_length\n        nwalkers=self.nwalkers\n\n        if method=='ball':\n            print(\"Setting Center Cluster...\")\n            center=zeros(ndim)\n            for i,key in enumerate(self.parameters):\n                center[self.slices.__getattribute__(key)]=self.parameters[key].initial_value\n            \n            self.last_pos=emcee.utils.sample_ball(center, \n                            0.05*center+1e-4, size=nwalkers)\n            \n            print(\"done.\")\n            \n        elif method=='prior':\n        \n            self.sampler = emcee.EnsembleSampler(self.nwalkers, ndim, \n                                                 self._lnprior,args=(self.slices,))\n\n            pos=np.zeros((nwalkers,ndim))\n            for i,key in enumerate(self.parameters):\n                pos[:,self.slices[i]]=np.random.randn(nwalkers,len(self.parameters[key]))*10\n                pos[:,self.slices[i]][pos[:,self.slices[i]]&lt;=self.parameters[key].lower]=self.parameters[key].lower\n\n\n            self.initial_pos=pos.copy()\n            timeit(reset=True)\n            print(\"Sampling Prior...\")\n\n            with warnings.catch_warnings(record=True) as warning_list:\n                # Cause all warnings to always be triggered\n                #warnings.simplefilter(\"always\")\n                # Call your function that issues a warning        \n                self.sampler.run_mcmc(pos, N,**kwargs)\n\n            self.warnings.extend(warning_list)\n\n            print(\"Done.\")\n            print( timeit())\n            \n            # assign the median back into the simulation values\n            self.burn()\n            self.median_values=np.percentile(self.samples,50,axis=0)\n\n            self.last_pos=self.sampler.chain[:,-1,:]\n            \n            \n        elif method=='samples':\n            print(\"Samples\")\n            lower,upper=np.percentile(self.samples, [16,84],axis=0)            \n            subsamples=self.samples[((self.samples&gt;=lower) & (self.samples&lt;=upper)).all(axis=1),:]\n            idx=np.random.randint(subsamples.shape[0],size=self.last_pos.shape[0])\n            self.last_pos=subsamples[idx,:]            \n        elif method=='median':            \n            vals=self.median_values\n            self.last_pos=emcee.utils.sample_ball(vals, \n                            0.05*vals+1e-4, size=self.nwalkers)\n        else:\n            raise ValueError(\"Unknown method: %s\" % method)\n            \n        \n    def burn(self,burn_percentage=None):\n        if not burn_percentage is None:\n            self.burn_percentage=burn_percentage\n            \n        if self.burn_percentage&gt;1:\n            self.burn_percentage/=100.0\n\n        burnin = int(self.sampler.chain.shape[1]*self.burn_percentage)  # burn 25 percent\n        ndim=self.parameter_length\n        self.samples = self.sampler.chain[:, burnin:, :].reshape((-1, ndim))\n        \n    def run_mcmc(self,N,repeat=1,**kwargs):\n        ndim=self.parameter_length\n        nwalkers=self.nwalkers\n        \n        if self.last_pos is None:\n            self.set_initial_values('prior')\n        \n\n        for i in range(repeat):        \n            timeit(reset=True)\n            self.sampler = emcee.EnsembleSampler(self.nwalkers, ndim, self,)\n\n            if repeat==1:\n                print(\"Running MCMC...\")\n            else:\n                print(\"Running MCMC %d/%d...\" % (i+1,repeat))\n\n            self.sampler.run_mcmc(self.last_pos, N,**kwargs)\n            print(\"Done.\")\n            print (timeit())\n\n            if repeat&gt;1:\n                self.burn()\n                self.set_initial_values('samples')  # reset using the 16-84 percentile values from the samples\n\n\n        # assign the median back into the simulation values\n        self.burn()\n        self.median_values=np.percentile(self.samples,50,axis=0)\n        theta=self.median_values\n\n        self.last_pos=self.sampler.chain[:,-1,:]\n    \n        \n        \n    def plot_chains(self,*args,**kwargs):\n        import pylab as py\n        \n        if not args:\n            args=[key for key in self.parameters if len(self.parameters[key])==1]\n        else:\n            for arg in args:\n                assert arg in self.parameters\n                \n        L=sum([len(self.parameters[key]) for key in args])\n\n        figsize=rcParams['figure.figsize']\n        figsize[1]=5/8*figsize[0]*L  # make square\n        figsize=kwargs.pop('figsize',figsize)\n        \n        print(\"figsize\",figsize)\n        fig, axes = py.subplots(len(args), 1, sharex=True, figsize=figsize)\n        try:  # is it iterable?\n            axes[0]\n        except TypeError:\n            axes=[axes]\n\n\n        labels=[]\n        count=0\n        for key in args:\n            s=self.slices.__getattribute__(key)\n            sub_sample=self.sampler.chain[:, :, s]\n            for i in range(len(self.parameters[key])):\n                sample=sub_sample[:, :, i].T\n                ax=axes[count]\n                ax.plot(sample, color=\"k\", alpha=0.2,**kwargs)\n                \n                if len(self.parameters[key])==1:\n                    ax.set_ylabel(f'{key}' )\n                else:\n                    ax.set_ylabel(f'{key}$_{i}$')\n\n\n                \n                count+=1\n            \n        \n    def _lnposterior(self,θ):\n        _value=0\n        _value+=self._lnprior(θ,self.slices)\n        \n        _value+=self._lnlikelihood(θ,self.data,self.slices)\n        \n        return np.sum(_value)\n    \n    def __call__(self,θ):\n        return self._lnposterior(θ)",
+    "crumbs": [
+      "MCMC part of the libary"
+    ]
+  },
+  {
+    "objectID": "core.html",
+    "href": "core.html",
+    "title": "sie - Statistical Inference for Everyone",
+    "section": "",
+    "text": "foo\n\n foo ()",
+    "crumbs": [
+      "sie - Statistical Inference for Everyone"
+    ]
+  },
+  {
+    "objectID": "02_tutorial_mcmc.html",
+    "href": "02_tutorial_mcmc.html",
+    "title": "Tutorial: MCMC",
+    "section": "",
+    "text": "from pylab import *\n\n\nfrom sie.mcmc import StatsModel\n\nModuleNotFoundError: No module named 'sie'\n\n\n\nxy1=\"\"\"\nX   Y\n10  8.04\n8   6.95\n13  7.58\n9   8.81\n11  8.33\n14  9.96\n6   7.24\n4   4.26\n12  10.84\n7   4.82\n5   5.68\n\"\"\"\nxy=xy1\nx,y=array([_.split() for _ in xy.strip().split('\\n')[1:]],dtype=float).T\nx,y\n\n(array([10.,  8., 13.,  9., 11., 14.,  6.,  4., 12.,  7.,  5.]),\n array([ 8.04,  6.95,  7.58,  8.81,  8.33,  9.96,  7.24,  4.26, 10.84,\n         4.82,  5.68]))\n\n\n\nmodel=StatsModel()\nmodel.add_data(x=x,y=y)\nmodel.add(\"m ~ Normal(0,10)\")\nmodel.add(\"b ~ Normal(0,10)\")\nmodel.add(\"σ ~ Jeffreys()\")\nmodel.add(\"res ~ Normal(m*x+b-y,σ,sum=True)\")\nmodel.initialize()\nmodel\n\n\nprint(model.make_func())\n\n\nmodel.run_mcmc(800,repeat=3)\nmodel.plot_chains()",
+    "crumbs": [
+      "Tutorial: MCMC"
+    ]
+  }
+]

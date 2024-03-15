@@ -1,3 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>https://bblais.github.io/sie/index.html</loc>
+    <lastmod>2024-03-15T17:49:24.867Z</lastmod>
+  </url>
+  <url>
+    <loc>https://bblais.github.io/sie/01_mcmc.html</loc>
+    <lastmod>2024-03-15T17:50:39.124Z</lastmod>
+  </url>
+  <url>
+    <loc>https://bblais.github.io/sie/core.html</loc>
+    <lastmod>2024-03-15T17:49:24.842Z</lastmod>
+  </url>
+  <url>
+    <loc>https://bblais.github.io/sie/02_tutorial_mcmc.html</loc>
+    <lastmod>2024-03-15T17:50:30.447Z</lastmod>
+  </url>
 </urlset>
