@@ -1,9 +1,13 @@
 #| default_exp mcmc
 
 #| export
+from fastcore.utils import patch
+
+#| export
 from pylab import *
 import emcee
 import warnings
+from scipy.special import gammaln,gamma
 
 #| export
 import time
@@ -79,6 +83,8 @@ def histogram(y,bins=50,plot=True):
 
 
 #| export
+from scipy.stats import distributions as D
+
 def Normal(μ,σ,sum=False):
     
     def _Normal(x):
@@ -95,6 +101,122 @@ def Normal(μ,σ,sum=False):
             return values
         
     return _Normal
+
+def init_Normal(μ,σ,sum=False):
+    
+    def _init_Normal(nwalkers):
+        
+        values=np.random.randn(nwalkers)*σ+μ
+        if sum:
+            return np.sum(values)
+        else:
+            return values
+        
+    return _init_Normal
+
+def Uniform(mn,mx,sum=False):
+    
+    def _Uniform(x):
+        try:
+            N=len(x)
+            
+            if sum:
+                if any(x<mn):
+                    return -np.inf
+                if any(x>mx):
+                    return -np.inf
+                
+            values=np.log(1.0/(mx-mn))
+            
+            if sum:
+                return values.sum()
+            else:
+                return values
+            
+        except TypeError:
+            N=1
+
+            if mn < x < mx:
+                return np.log(1.0/(mx-mn))
+            return -np.inf
+        
+        
+    return _Uniform
+
+
+def init_Uniform(mn,mx,sum=False):
+    
+    def _init_Uniform(x):
+       
+        values=np.random.rand(nwalkers)*(mx-mn)+mn
+        if sum:
+            return np.sum(values)
+        else:
+            return values
+    
+        
+    return _init_Uniform
+
+
+def Exponential(scale,offset=0,sum=False):
+    
+    def _Exponential(x):
+        try:
+            N=len(x)
+            
+            if sum:
+                if any(x<offset):
+                    return -np.inf
+                if any(x>mx):
+                    return -np.inf
+                
+            values=-np.log(scale)-(x-offset)/scale 
+            
+            if sum:
+                return values.sum()
+            else:
+                return values
+            
+        except TypeError:
+            N=1
+
+            if x<=offset:
+                return -np.inf
+            
+            return -np.log(scale)-(x-offset)/scale            
+            
+        
+        
+    return _Exponential
+
+
+def StudentT(df,mu,sd,sum=False):
+    
+    def _StudentT(x):
+        
+        t=(x-mu)/float(sd)
+        
+        try:
+            N=len(x)            
+        except TypeError:
+            N=1
+
+        values=N*(gammaln((df+1)/2.0)-0.5*log(df*np.pi)-gammaln(df/2.0)-np.log(sd))+(-(df+1)/2.0)*np.log(1+t**2/df)
+        
+        if any(np.isnan(values)):
+            raise ValueError('NaN in StudentT',df,mu,sd)
+            
+        if sum:
+            return np.sum(values)
+        else:
+            return values
+        
+        
+    return _StudentT
+
+
+
+
 
 def HalfNormal(μ,σ,sum=False):
     
@@ -132,6 +254,40 @@ def Jeffreys(sum=False):
         
     return _Jeffreys
 
+
+def init_Jeffreys(mn,mx,sum=False):
+    
+    def _init_Jeffreys(x):
+       
+        values=np.random.rand(nwalkers)*2
+        if sum:
+            return np.sum(values)
+        else:
+            return values
+    
+        
+    return _init_Jeffreys
+
+#| export
+class Normal(object):
+    def __init__(self,mean=0,std=1,sum=False):
+        self.mean=mean
+        self.std=std
+        self.sum=sum
+        
+    @property
+    def D(self):
+        return D.norm(self.mean,self.std)
+
+    def rand(self,*args):
+        return np.random.randn(*args)*self.std+self.mean
+    
+    def __call__(self,x):
+        return lognormalpdf(x,self.mean,self.std)
+
+
+
+
 #| export
 class Parameter(object):
     
@@ -142,12 +298,23 @@ class Parameter(object):
         self.rest=rest.strip()
         self.length=1
         self.lower=-np.inf
+
+        self.distribution=exec(self.rest)
+        self.distribution_name=self.rest
         
         if 'Jeffreys' in self.rest:
             self.lower=0.0
             if initial_value is None:
                 self.initial_value=1.0
 
+        if 'Exponential' in self.rest:
+            self.lower=0.0
+            if initial_value is None:
+                self.initial_value=1.0
+                
+        print("rest bb",self.rest)
+        print("name bb",self.name)
+                
         if initial_value is None:
             self.initial_value=0.0
         else:
@@ -173,62 +340,17 @@ class StatsModel(object):
         self.burn_percentage=0.25
         self.warnings=[]
         self.last_pos=None
+        self.extra_params={}
     
     
     def add_data(self,**kwargs):
         self.data.update(**kwargs) 
         
-    def make_func(self):
-        s="def _lnprior(θ,slices):\n"
-        
-        for param in self.prior_parameters:
-            name=param.name
-            s+=f"    {name}=θ[slices.{name}]\n" 
 
-        s+="\n    _value=0\n\n"
+    def extra(self,**kwargs):
+        for key in kwargs:
+            self.extra_params[key]=kwargs[key]
         
-        for param in self.prior_parameters:
-            name=param.name
-            rest=param.rest
-            s+=f"    _value+={rest}({name})\n" 
-        
-        
-        s+="\n    return _value\n"
-        
-        s+="\n\n"
-        
-        s+="def _lnlikelihood(θ,data,slices):\n"
-        
-        for key in self.data:
-            s+=f"    {key}=data['{key}']\n"
-        s+="\n"
-
-        for param in self.prior_parameters:
-            name=param.name
-            s+=f"    {name}=θ[slices.{name}]\n" 
-        s+="\n"
-        for param in self.likelihood_parameters:
-            name=param.name
-            s+=f"    {name}=θ[slices.{name}]\n" 
-        
-        s+="\n    _value=0\n\n"
-        
-        for param in self.likelihood_parameters:
-            name=param.name
-            rest=param.rest
-            s+=f"    _value+={rest}({name})\n"
-        
-        s+="\n    return _value.sum()\n"
-        
-        
-        self.function_str=s
-        
-        exec(s)
-
-        self._lnprior=locals()['_lnprior']
-        self._lnlikelihood=locals()['_lnlikelihood']
-        
-        return s
         
     def add(self,eqn):
         from io import StringIO
@@ -262,6 +384,9 @@ class StatsModel(object):
 Parameters
 ----------
     %s
+Extra
+-----
+    %s
 Data
 ----
     %s
@@ -271,7 +396,7 @@ Prior
 Likelihood
 ----------
     %s
-        """ % (self.parameters,list(self.data.keys()),
+        """ % (self.parameters,list(self.extra_params.keys()),list(self.data.keys()),
                [param.eqn for param in self.prior_parameters],
                [param.eqn for param in self.likelihood_parameters]) 
         
@@ -304,13 +429,18 @@ Likelihood
             self.last_pos=emcee.utils.sample_ball(center, 
                             0.05*center+1e-4, size=nwalkers)
             
+            
+            
             print("done.")
             
         elif method=='prior':
         
             self.sampler = emcee.EnsembleSampler(self.nwalkers, ndim, 
-                                                 self._lnprior,args=(self.slices,))
+                                                 self._lnprior,args=(self.slices,self.extra_params,))
 
+#            pos=self._init_prior(nwalkers,ndim,self.data,self.slices,self.extra_params)
+            
+            
             pos=np.zeros((nwalkers,ndim))
             for i,key in enumerate(self.parameters):
                 pos[:,self.slices[i]]=np.random.randn(nwalkers,len(self.parameters[key]))*10
@@ -444,9 +574,8 @@ Likelihood
         
     def _lnposterior(self,θ):
         _value=0
-        _value+=self._lnprior(θ,self.slices)
-        
-        _value+=self._lnlikelihood(θ,self.data,self.slices)
+        _value+=self._lnprior(θ,self.slices,self.extra_params)
+        _value+=self._lnlikelihood(θ,self.data,self.slices,self.extra_params)
         
         return np.sum(_value)
     
@@ -517,7 +646,112 @@ Likelihood
         return result
     
 
+#| export
+@patch
+def make_func(self:StatsModel):
+    s="def _lnprior(θ,slices,extra={}):\n"
+
+    if self.extra_params:
+        for key in self.extra_params:
+            s+=f"    {key}=extra['{key}']\n"
+
+    for param in self.prior_parameters:
+        name=param.name
+        s+=f"    {name}=θ[slices.{name}]\n" 
+
+    s+="\n    _value=0\n\n"
+
+    for param in self.prior_parameters:
+        name=param.name
+        rest=param.rest
+        s+=f"    _value+={rest}({name})\n" 
+
+
+    s+="\n    return _value\n"
+
+    s+="\n\n"
+
+
+    s+="def _init_prior(nwalkers,ndim,data,slices,extra={}):\n"
+#     s+="\n    _value=None\n"
+    
+#     s+="\n    return _value\n"
+#     s+="\n\n"
+
+    if self.extra_params:
+        for key in self.extra_params:
+            s+=f"    {key}=extra['{key}']\n"
+            
+    for key in self.data:
+        s+=f"    {key}=data['{key}']\n"
+    s+="\n"
+            
+
+    s+=f"    _pos=np.zeros((nwalkers,ndim))\n" 
+
+    for param in self.prior_parameters:
+        name=param.name
+        rest=param.rest
+        s+=f"    {name}=_pos[:,slices.{name}]=init_{rest}(nwalkers)\n" 
+
+    for param in self.likelihood_parameters:
+        name=param.name
+        rest=param.rest
+        s+=f"    {name}=_pos[:,slices.{name}]=init_{rest}(nwalkers)\n" 
+
+
+
+    s+="\n    return _pos\n"
+
+    s+="\n\n"
+
+
+
+
+    s+="def _lnlikelihood(θ,data,slices,extra={}):\n"
+
+    if self.extra_params:
+        for key in self.extra_params:
+            s+=f"    {key}=extra['{key}']\n"
+
+    for key in self.data:
+        s+=f"    {key}=data['{key}']\n"
+    s+="\n"
+
+    for param in self.prior_parameters:
+        name=param.name
+        s+=f"    {name}=θ[slices.{name}]\n" 
+    s+="\n"
+    for param in self.likelihood_parameters:
+        name=param.name
+        s+=f"    {name}=θ[slices.{name}]\n" 
+
+    s+="\n    _value=0\n\n"
+
+    for param in self.likelihood_parameters:
+        name=param.name
+        rest=param.rest
+        s+=f"    _value+={rest}({name})\n"
+
+    s+="\n    return _value.sum()\n"
+
+
+    self.function_str=s
+
+    
+    
+    exec(s)
+
+    self._init_prior=locals()['_init_prior']
+    self._lnprior=locals()['_lnprior']
+    self._lnlikelihood=locals()['_lnlikelihood']
+
+    return s
+
+
 #| hide
 import nbdev; nbdev.nbdev_export()
+
+
 
 

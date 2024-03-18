@@ -34,6 +34,8 @@ model.add("res ~ Normal(m*x+b-y,σ,sum=True)")
 model.initialize()
 model
 
+print(model.function_str)
+
 print(model.make_func())
 
 model.run_mcmc(800,repeat=3)
@@ -44,14 +46,6 @@ model.best_estimates()
 model.plot_chains('σ')
 
 model.plot_distributions()
-
-
-
-
-
-
-
-
 
 #| hide
 import nbdev; nbdev.nbdev_export()

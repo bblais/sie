@@ -21,6 +21,28 @@ x,y=array([_.split() for _ in xy.strip().split('\n')[1:]],dtype=float).T
 x,y
 
 model=StatsModel()
+model.add_data(y=y)
+model.add("m ~ Normal(0,10)")
+model.add("res ~ Normal(m-y,1,sum=True)")
+model.initialize()
+model
+
+model.run_mcmc(50,repeat=3)
+model.plot_chains()
+
+
+
+raise ValueError
+
+
+
+
+
+
+
+
+
+model=StatsModel()
 model.add_data(x=x,y=y)
 model.add("m ~ Normal(0,10)")
 model.add("b ~ Normal(0,10)")
@@ -31,7 +53,7 @@ model
 
 print(model.make_func())
 
-model.run_mcmc(800,repeat=3)
+model.run_mcmc(50,repeat=3)
 model.plot_chains()
 
 self=model
@@ -46,7 +68,7 @@ result
 
 model.plot_distributions()
 
-
+print(model.make_func())
 
 
 
