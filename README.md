@@ -14,7 +14,7 @@ pip install sie
 
 ## How to use
 
-Fill me in please! Don’t forget code examples:
+More later!
 
 ``` python
 1+1

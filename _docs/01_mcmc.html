@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>sie - Tutorial: MCMC</title>
+<title>sie - MCMC part of the libary</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -19,40 +19,6 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -103,9 +69,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <link rel="stylesheet" href="styles.css">
-<meta property="og:title" content="sie - Tutorial: MCMC">
+<meta property="og:title" content="sie - MCMC part of the libary">
+<meta property="og:description" content="Statistical Inference for Everyone">
 <meta property="og:site_name" content="sie">
-<meta name="twitter:title" content="sie - Tutorial: MCMC">
+<meta name="twitter:title" content="sie - MCMC part of the libary">
+<meta name="twitter:description" content="Statistical Inference for Everyone">
 <meta name="twitter:card" content="summary">
 </head>
 
@@ -130,7 +98,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./02_tutorial_mcmc.html">Tutorial: MCMC</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./01_mcmc.html">MCMC part of the libary</a></li></ol></nav>
         <a class="flex-grow-1" role="button" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -156,14 +124,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./01_mcmc.html" class="sidebar-item-text sidebar-link">
+  <a href="./01_mcmc.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">MCMC part of the libary</span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./02_tutorial_mcmc.html" class="sidebar-item-text sidebar-link active">
+  <a href="./02_tutorial_mcmc.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Tutorial: MCMC</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./02a_tutorial_BEST.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Tutorial: BEST Test</span></a>
   </div>
 </li>
     </ul>
@@ -172,14 +146,43 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
     <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#timeit" id="toc-timeit" class="nav-link active" data-scroll-target="#timeit">timeit</a></li>
+  <li><a href="#time2str" id="toc-time2str" class="nav-link" data-scroll-target="#time2str">time2str</a></li>
+  <li><a href="#histogram" id="toc-histogram" class="nav-link" data-scroll-target="#histogram">histogram</a></li>
+  <li><a href="#distribution-log-likelihoods" id="toc-distribution-log-likelihoods" class="nav-link" data-scroll-target="#distribution-log-likelihoods">Distribution Log Likelihoods</a>
+  <ul class="collapse">
+  <li><a href="#init_jeffreys" id="toc-init_jeffreys" class="nav-link" data-scroll-target="#init_jeffreys">init_Jeffreys</a></li>
+  <li><a href="#jeffreys" id="toc-jeffreys" class="nav-link" data-scroll-target="#jeffreys">Jeffreys</a></li>
+  <li><a href="#init_halfnormal" id="toc-init_halfnormal" class="nav-link" data-scroll-target="#init_halfnormal">init_HalfNormal</a></li>
+  <li><a href="#halfnormal" id="toc-halfnormal" class="nav-link" data-scroll-target="#halfnormal">HalfNormal</a></li>
+  <li><a href="#init_studentt" id="toc-init_studentt" class="nav-link" data-scroll-target="#init_studentt">init_StudentT</a></li>
+  <li><a href="#studentt" id="toc-studentt" class="nav-link" data-scroll-target="#studentt">StudentT</a></li>
+  <li><a href="#init_exponential" id="toc-init_exponential" class="nav-link" data-scroll-target="#init_exponential">init_Exponential</a></li>
+  <li><a href="#exponential" id="toc-exponential" class="nav-link" data-scroll-target="#exponential">Exponential</a></li>
+  <li><a href="#init_uniform" id="toc-init_uniform" class="nav-link" data-scroll-target="#init_uniform">init_Uniform</a></li>
+  <li><a href="#uniform" id="toc-uniform" class="nav-link" data-scroll-target="#uniform">Uniform</a></li>
+  <li><a href="#init_normal" id="toc-init_normal" class="nav-link" data-scroll-target="#init_normal">init_Normal</a></li>
+  <li><a href="#normal" id="toc-normal" class="nav-link" data-scroll-target="#normal">Normal</a></li>
+  </ul></li>
+  <li><a href="#main-mcmc-definitions" id="toc-main-mcmc-definitions" class="nav-link" data-scroll-target="#main-mcmc-definitions">Main MCMC Definitions</a>
+  <ul class="collapse">
+  <li><a href="#statsmodel" id="toc-statsmodel" class="nav-link" data-scroll-target="#statsmodel">StatsModel</a></li>
+  <li><a href="#parameter" id="toc-parameter" class="nav-link" data-scroll-target="#parameter">Parameter</a></li>
+  <li><a href="#statsmodel.make_func" id="toc-statsmodel.make_func" class="nav-link" data-scroll-target="#statsmodel.make_func">StatsModel.make_func</a></li>
+  </ul></li>
+  </ul>
+<div class="toc-actions"><ul><li><a href="https://github.com/bblais/sie/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Tutorial: MCMC</h1>
+<h1 class="title">MCMC part of the libary</h1>
 </div>
 
 
@@ -197,58 +200,160 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <!-- WARNING: THIS FILE WAS AUTOGENERATED! DO NOT EDIT! -->
-<div id="5fd52a9d-8b05-452d-907d-9d66879e1458" class="cell">
-<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> pylab <span class="im">import</span> <span class="op">*</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div id="e8661c65-cd90-443c-a6be-25c1afc90f41" class="cell">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> sie.mcmc <span class="im">import</span> StatsModel</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-error">
-<pre><code>ModuleNotFoundError: No module named 'sie'</code></pre>
-</div>
-</div>
-<div id="dd45b096-2662-4917-9160-72410de091f6" class="cell">
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>xy1<span class="op">=</span><span class="st">"""</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="st">X   Y</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="st">10  8.04</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="st">8   6.95</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="st">13  7.58</span></span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="st">9   8.81</span></span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="st">11  8.33</span></span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="st">14  9.96</span></span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="st">6   7.24</span></span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="st">4   4.26</span></span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a><span class="st">12  10.84</span></span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="st">7   4.82</span></span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="st">5   5.68</span></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a><span class="st">"""</span></span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>xy<span class="op">=</span>xy1</span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>x,y<span class="op">=</span>array([_.split() <span class="cf">for</span> _ <span class="kw">in</span> xy.strip().split(<span class="st">'</span><span class="ch">\n</span><span class="st">'</span>)[<span class="dv">1</span>:]],dtype<span class="op">=</span><span class="bu">float</span>).T</span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>x,y</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-<div class="cell-output cell-output-display">
-<pre><code>(array([10.,  8., 13.,  9., 11., 14.,  6.,  4., 12.,  7.,  5.]),
- array([ 8.04,  6.95,  7.58,  8.81,  8.33,  9.96,  7.24,  4.26, 10.84,
-         4.82,  5.68]))</code></pre>
-</div>
-</div>
-<div id="788be77b-2341-48b4-9203-508cea30a41e" class="cell">
-<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>model<span class="op">=</span>StatsModel()</span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>model.add_data(x<span class="op">=</span>x,y<span class="op">=</span>y)</span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>model.add(<span class="st">"m ~ Normal(0,10)"</span>)</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>model.add(<span class="st">"b ~ Normal(0,10)"</span>)</span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>model.add(<span class="st">"σ ~ Jeffreys()"</span>)</span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>model.add(<span class="st">"res ~ Normal(m*x+b-y,σ,sum=True)"</span>)</span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>model.initialize()</span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>model</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div id="af3390ef-f339-4176-b072-e3bf8a2810b0" class="cell">
-<div class="sourceCode cell-code" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(model.make_func())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
-<div id="5c03799b-dd49-41c5-b695-84fde3b79ca1" class="cell">
-<div class="sourceCode cell-code" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a>model.run_mcmc(<span class="dv">800</span>,repeat<span class="op">=</span><span class="dv">3</span>)</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>model.plot_chains()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
-</div>
+<hr>
+<p><a href="https://github.com/bblais/sie/blob/main/sie/mcmc.py#L50" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="timeit" class="level3">
+<h3 class="anchored" data-anchor-id="timeit">timeit</h3>
+<blockquote class="blockquote">
+<pre><code> timeit (reset=False)</code></pre>
+</blockquote>
+<hr>
+<p><a href="https://github.com/bblais/sie/blob/main/sie/mcmc.py#L20" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="time2str" class="level3">
+<h3 class="anchored" data-anchor-id="time2str">time2str</h3>
+<blockquote class="blockquote">
+<pre><code> time2str (tm)</code></pre>
+</blockquote>
+<hr>
+<p><a href="https://github.com/bblais/sie/blob/main/sie/mcmc.py#L65" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="histogram" class="level3">
+<h3 class="anchored" data-anchor-id="histogram">histogram</h3>
+<blockquote class="blockquote">
+<pre><code> histogram (y, bins=50, plot=True)</code></pre>
+</blockquote>
+</section>
+<section id="distribution-log-likelihoods" class="level2">
+<h2 class="anchored" data-anchor-id="distribution-log-likelihoods">Distribution Log Likelihoods</h2>
+<hr>
+<p><a href="https://github.com/bblais/sie/blob/main/sie/mcmc.py#L307" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="init_jeffreys" class="level3">
+<h3 class="anchored" data-anchor-id="init_jeffreys">init_Jeffreys</h3>
+<blockquote class="blockquote">
+<pre><code> init_Jeffreys (sum=False)</code></pre>
+</blockquote>
+<hr>
+<p><a href="https://github.com/bblais/sie/blob/main/sie/mcmc.py#L294" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="jeffreys" class="level3">
+<h3 class="anchored" data-anchor-id="jeffreys">Jeffreys</h3>
+<blockquote class="blockquote">
+<pre><code> Jeffreys ()</code></pre>
+</blockquote>
+<hr>
+<p><a href="https://github.com/bblais/sie/blob/main/sie/mcmc.py#L279" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="init_halfnormal" class="level3">
+<h3 class="anchored" data-anchor-id="init_halfnormal">init_HalfNormal</h3>
+<blockquote class="blockquote">
+<pre><code> init_HalfNormal (μ, σ, sum=False)</code></pre>
+</blockquote>
+<hr>
+<p><a href="https://github.com/bblais/sie/blob/main/sie/mcmc.py#L258" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="halfnormal" class="level3">
+<h3 class="anchored" data-anchor-id="halfnormal">HalfNormal</h3>
+<blockquote class="blockquote">
+<pre><code> HalfNormal (μ, σ, sum=False)</code></pre>
+</blockquote>
+<hr>
+<p><a href="https://github.com/bblais/sie/blob/main/sie/mcmc.py#L243" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="init_studentt" class="level3">
+<h3 class="anchored" data-anchor-id="init_studentt">init_StudentT</h3>
+<blockquote class="blockquote">
+<pre><code> init_StudentT (μ, σ, sum=False)</code></pre>
+</blockquote>
+<hr>
+<p><a href="https://github.com/bblais/sie/blob/main/sie/mcmc.py#L217" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="studentt" class="level3">
+<h3 class="anchored" data-anchor-id="studentt">StudentT</h3>
+<blockquote class="blockquote">
+<pre><code> StudentT (df, mu, sd, sum=False)</code></pre>
+</blockquote>
+<hr>
+<p><a href="https://github.com/bblais/sie/blob/main/sie/mcmc.py#L201" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="init_exponential" class="level3">
+<h3 class="anchored" data-anchor-id="init_exponential">init_Exponential</h3>
+<blockquote class="blockquote">
+<pre><code> init_Exponential (scale, offset=0, sum=False)</code></pre>
+</blockquote>
+<hr>
+<p><a href="https://github.com/bblais/sie/blob/main/sie/mcmc.py#L169" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="exponential" class="level3">
+<h3 class="anchored" data-anchor-id="exponential">Exponential</h3>
+<blockquote class="blockquote">
+<pre><code> Exponential (scale, offset=0, sum=False)</code></pre>
+</blockquote>
+<hr>
+<p><a href="https://github.com/bblais/sie/blob/main/sie/mcmc.py#L154" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="init_uniform" class="level3">
+<h3 class="anchored" data-anchor-id="init_uniform">init_Uniform</h3>
+<blockquote class="blockquote">
+<pre><code> init_Uniform (mn, mx, sum=False)</code></pre>
+</blockquote>
+<hr>
+<p><a href="https://github.com/bblais/sie/blob/main/sie/mcmc.py#L124" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="uniform" class="level3">
+<h3 class="anchored" data-anchor-id="uniform">Uniform</h3>
+<blockquote class="blockquote">
+<pre><code> Uniform (mn, mx, sum=False)</code></pre>
+</blockquote>
+<hr>
+<p><a href="https://github.com/bblais/sie/blob/main/sie/mcmc.py#L110" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="init_normal" class="level3">
+<h3 class="anchored" data-anchor-id="init_normal">init_Normal</h3>
+<blockquote class="blockquote">
+<pre><code> init_Normal (μ, σ, sum=True)</code></pre>
+</blockquote>
+<hr>
+<p><a href="https://github.com/bblais/sie/blob/main/sie/mcmc.py#L93" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="normal" class="level3">
+<h3 class="anchored" data-anchor-id="normal">Normal</h3>
+<blockquote class="blockquote">
+<pre><code> Normal (μ, σ, sum=True)</code></pre>
+</blockquote>
+</section>
+</section>
+<section id="main-mcmc-definitions" class="level2">
+<h2 class="anchored" data-anchor-id="main-mcmc-definitions">Main MCMC Definitions</h2>
+<hr>
+<p><a href="https://github.com/bblais/sie/blob/main/sie/mcmc.py#L351" target="_blank" style="float:right; font-size:smaller">source</a></p>
+<section id="statsmodel" class="level3">
+<h3 class="anchored" data-anchor-id="statsmodel">StatsModel</h3>
+<blockquote class="blockquote">
+<pre><code> StatsModel ()</code></pre>
+</blockquote>
+<p>Initialize self. See help(type(self)) for accurate signature.</p>
+<hr>
+<p><a href="https://github.com/bblais/sie/blob/main/sie/mcmc.py#L318" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="parameter" class="level3">
+<h3 class="anchored" data-anchor-id="parameter">Parameter</h3>
+<blockquote class="blockquote">
+<pre><code> Parameter (eqn, initial_value=None)</code></pre>
+</blockquote>
+<p>Initialize self. See help(type(self)) for accurate signature.</p>
+<hr>
+<p><a href="https://github.com/bblais/sie/blob/main/sie/mcmc.py#L679" target="_blank" style="float:right; font-size:smaller">source</a></p>
+</section>
+<section id="statsmodel.make_func" class="level3">
+<h3 class="anchored" data-anchor-id="statsmodel.make_func">StatsModel.make_func</h3>
+<blockquote class="blockquote">
+<pre><code> StatsModel.make_func ()</code></pre>
+</blockquote>
 
 
+</section>
+</section>
 
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
@@ -665,4 +770,4 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 
 
 
-<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions"><ul><li><a href="https://github.com/bblais/sie/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>
+<footer class="footer"><div class="nav-footer"><div class="nav-footer-center"><div class="toc-actions d-sm-block d-md-none"><ul><li><a href="https://github.com/bblais/sie/issues/new" class="toc-action"><i class="bi bi-github"></i>Report an issue</a></li></ul></div></div></div></footer></body></html>

@@ -6,3 +6,5 @@ website:
       - 01_mcmc.ipynb
       - 02_tutorial_mcmc.ipynb
       - 02a_tutorial_BEST.ipynb
+      - 99_debug_BEST.ipynb
+      - 99_debug_mcmc.ipynb

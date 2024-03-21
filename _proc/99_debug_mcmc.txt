@@ -173,9 +173,6 @@ for θ in array([[-14.826862,  -2.981727,   1.045552],
 np.set_printoptions(precision=20)
 θ
 
-from nbdev.quarto import nbdev_docs
-nbdev_docs(skip_file_glob='*99*.ipynb')
-
-nbdev_docs??
+from fastcore.quarto import nbdev_docs
 
 
