@@ -1,0 +1,174 @@
+%matplotlib inline
+from pylab import *
+from sie.mcmc import StatsModel
+
+x=array([ .2, 0.39595125,   0.22981019,  -4.38971186,   4.57653843,
+         4.38800312,  -3.14227423,  -1.66494169,  -4.0148864 ,
+         4.10562856,   2.19091249,  11.18389772,   1.53046862,
+        -6.05251134,  -1.5028012 ,   1.12985659,   0.84215301,
+        -4.37528332,  -1.51364766,  -6.06991254,  -1.11838459,
+         3.94521945,   3.65019148,  -0.5446649 ,   0.85721735,
+         1.41391355,   1.43089269,   0.6089257 ,   5.03635336,
+         4.92170115,   4.2066542 ,   2.48580373,   9.2895543 ,
+         2.92144036,   2.91079341,   0.55777809,   8.04122751,
+       -12.06833542,  -0.70706651,  14.96419495,   0.82773164,
+         6.32229804,   6.71565991,   5.57064652,   4.87913438,
+        -0.39353282,  -4.45373509,  -3.54839884,   5.38362984,
+         4.70926759,   3.65790252,   0.63145437,   5.24971408,
+         8.2553935 ,   4.79006995,  -8.33670551,  -4.61956851,
+        -4.83453087,   1.62173756,  -1.92585591,  -2.63973241,
+         4.1506629 ,   3.56013401,  13.35631639,  -5.52537233,
+        -1.49474565,  -2.07293056,   5.4540973 ,   2.97490357,
+         4.6955487 ,   0.82952536,  -5.67363532,   9.0946318 ,
+        -2.52705592,   4.10840195,  -3.08773704,  -4.35166723,
+         9.03615482,   4.83026807,  -2.86675068,   2.70522369,
+        13.07522118,  -5.78459681,   3.28781511,   4.80430383,
+         2.27368715,  -7.48890544,   0.47985461,  17.22158394,
+         2.85875906, -12.35840458,   1.67710649,  -0.37967208,
+        -5.64580007,  -3.87064346,   4.78512975,  12.36217118,
+         1.75239768,   2.77851485,  -2.17896821,   6.25559514])
+
+len(x)
+
+model=StatsModel()
+model.add_data(x=x)
+model.add("m ~ Normal(0,10)")
+model.add("x ~ Normal(m,1)")
+model.initialize()
+
+print(model.make_func())
+
+model.run_mcmc(800,repeat=3)
+model.plot_chains()
+
+
+
+model.initial_pos.shape
+
+raise ValueError
+
+self=model
+θ=self.initial_pos[0,:]
+θ,self._lnprior(θ,self.slices,self.extra_params),self._lnlikelihood(θ,self.data,self.slices,self.extra_params)
+
+hist(self.initial_pos)
+
+
+
+
+
+
+
+
+
+xy1="""
+X	Y
+10	8.04
+8	6.95
+13	7.58
+9	8.81
+11	8.33
+14	9.96
+6	7.24
+4	4.26
+12	10.84
+7	4.82
+5	5.68
+"""
+xy=xy1
+x,y=array([_.split() for _ in xy.strip().split('\n')[1:]],dtype=float).T
+x,y
+
+model=StatsModel()
+model.add_data(x=x,y=y)
+model.add("m ~ Normal(0,10)")
+model.add("b ~ Normal(0,10)")
+model.add("y ~ Normal(m*x+b,1)")
+model.initialize()
+
+
+# model=StatsModel()
+# model.add_data(x=x,y=y)
+# model.add("m ~ Normal(0,10)")
+# model.add("b ~ Normal(0,10)")
+# model.add("σ ~ Jeffreys()")
+# model.add("res ~ Normal(m*x+b-y,σ,sum=True)")
+# model.initialize()
+# model
+
+print(model.make_func())
+
+model.run_mcmc(800,repeat=3)
+model.plot_chains()
+
+self=model
+args=[key for key in self.parameters if len(self.parameters[key])==1]
+result={}
+for key in args:
+    s=self.slices.__getattribute__(key)
+    sub_sample=self.samples[:,s]
+    result[key]=np.percentile(sub_sample,[16,50,84],axis=0)
+
+result
+
+model.plot_distributions()
+
+print(model.make_func())
+
+
+
+raise ValueError
+
+x,y
+
+model=StatsModel()
+model.add_data(x=x,y=y)
+model.add("m ~ Normal(0,10)")
+model.add("b ~ Normal(0,10)")
+model.add("σ ~ Jeffreys()")
+model.add("y ~ Normal(m*x+b,σ)")  
+model.initialize()
+
+
+print(model.make_func())
+
+model.run_mcmc(800,repeat=3)
+model.plot_chains()
+
+self=model
+θ=self.initial_pos[:20,:]
+θ
+
+arr=self.initial_pos[:20,:]-array([.1,.1,.1])
+arr
+
+for θ in array([[-14.826862,  -2.981727,   1.045552],
+       [  8.431632,   0.585361,   0.772754],
+       [ 16.236694, -15.309931,   0.598796],
+       [  9.68161 , -12.441471,   0.277232],
+       [ -2.876358,  13.452778,   1.142028],
+       [  0.960544,  -6.129887,   0.608603],
+       [-10.705965,  14.828011,   0.864605],
+       [ -4.720638,   4.334791,   0.429033],
+       [ 12.182724,  -4.694871,   1.443504],
+       [  7.418043,  10.181135,   1.842945],
+       [ -3.068734,  -0.922276,   1.860529],
+       [-14.820863,  -4.646646,   1.393483],
+       [  4.580451,   4.437066,   0.725135],
+       [ 23.5882  ,  -1.953356,  -0.064157],
+       [ -4.523048,  -3.039452,   1.490533],
+       [ -4.36002 ,  -8.094485,   1.831194],
+       [ -8.339802,  -8.504516,   1.81273 ],
+       [-20.571723,  -6.085963,   1.62975 ],
+       [  0.097142,  15.175296,   1.293157],
+       [  2.090642,  -0.407717,   0.347838]]):
+
+    print(self._lnprior(array(θ),self.slices,self.extra_params),self._lnlikelihood(θ,self.data,self.slices,self.extra_params))
+    
+
+
+
+np.set_printoptions(precision=20)
+θ
+
+

@@ -7,6 +7,20 @@ from pylab import *
 
 from sie.mcmc import StatsModel
 
+x=randn(100)*5+1.2
+model=StatsModel()
+model.add_data(x=x)
+model.add("m ~ Normal(0,10)")
+model.add("x ~ Normal(m,1)")
+model.initialize()
+
+model.run_mcmc(800,repeat=2)
+model.plot_chains()
+
+print(model.function_str)
+
+model.plot_distributions()
+
 xy1="""
 X	Y
 10	8.04
@@ -30,13 +44,11 @@ model.add_data(x=x,y=y)
 model.add("m ~ Normal(0,10)")
 model.add("b ~ Normal(0,10)")
 model.add("σ ~ Jeffreys()")
-model.add("res ~ Normal(m*x+b-y,σ,sum=True)")
+model.add("y ~ Normal(m*x+b,σ)")
 model.initialize()
 model
 
 print(model.function_str)
-
-print(model.make_func())
 
 model.run_mcmc(800,repeat=3)
 model.plot_chains()

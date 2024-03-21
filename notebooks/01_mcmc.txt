@@ -85,15 +85,15 @@ def histogram(y,bins=50,plot=True):
 #| export
 from scipy.stats import distributions as D
 
-def Normal(μ,σ,sum=False):
+def Normal(μ,σ,sum=True):
     
     def _Normal(x):
         try:
             N=len(x)
         except TypeError:
             N=1
-
-        values=-0.5*(x-μ)**2/σ**2 - 0.5*np.log(σ**2)-0.5*np.log(2*np.pi)
+            
+        values=-0.5*np.log(2*np.pi*σ**2) - (x-μ)**2/σ**2/2.0
         
         if sum:
             return np.sum(values)
@@ -102,17 +102,19 @@ def Normal(μ,σ,sum=False):
         
     return _Normal
 
-def init_Normal(μ,σ,sum=False):
+def init_Normal(μ,σ,sum=True):
     
     def _init_Normal(nwalkers):
         
-        values=np.random.randn(nwalkers)*σ+μ
+        values=np.random.randn(nwalkers,1)*σ+μ
         if sum:
-            return np.sum(values)
+            return np.sum(values,axis=1).reshape(nwalkers,1)
         else:
             return values
         
     return _init_Normal
+    
+
 
 def Uniform(mn,mx,sum=False):
     
@@ -148,9 +150,10 @@ def init_Uniform(mn,mx,sum=False):
     
     def _init_Uniform(x):
        
-        values=np.random.rand(nwalkers)*(mx-mn)+mn
+    
+        values=np.random.rand(nwalkers,1)*(mx-mn)+mn
         if sum:
-            return np.sum(values)
+            return np.sum(values,axis=1).reshape(nwalkers,1)
         else:
             return values
     
@@ -189,6 +192,22 @@ def Exponential(scale,offset=0,sum=False):
         
     return _Exponential
 
+# to init, we don't need exact match, just no illegal values
+def init_Exponential(scale,offset=0,sum=False):
+    
+    def _init_Exponential(nwalkers):
+        
+        values=np.random.rand(nwalkers,1)*scale+offset
+        if sum:
+            return np.sum(values,axis=1).reshape(nwalkers,1)
+        else:
+            return values
+        
+    return _init_Exponential
+
+
+
+
 
 def StudentT(df,mu,sd,sum=False):
     
@@ -215,6 +234,19 @@ def StudentT(df,mu,sd,sum=False):
     return _StudentT
 
 
+# to init, we don't need exact match, just no illegal values
+def init_StudentT(μ,σ,sum=False):
+    
+    def _init_StudentT(nwalkers):
+        
+        values=np.random.randn(nwalkers,1)*σ+μ
+        if sum:
+            return np.sum(values,axis=1).reshape(nwalkers,1)
+        else:
+            return values
+        
+    return _init_StudentT
+
 
 
 
@@ -238,8 +270,23 @@ def HalfNormal(μ,σ,sum=False):
         
     return _Normal
 
+# to init, we don't need exact match, just no illegal values
+def init_HalfNormal(μ,σ,sum=False):
+    
+    def _init_HalfNormal(nwalkers):
+        
+        values=np.random.rand(nwalkers,1)*σ+μ
+        if sum:
+            return np.sum(values,axis=1).reshape(nwalkers,1)
+        else:
+            return values
+        
+    return _init_HalfNormal
 
-def Jeffreys(sum=False):
+
+
+
+def Jeffreys():
     
     def _Jeffreys(x):
         if x>0.0:
@@ -247,46 +294,20 @@ def Jeffreys(sum=False):
         else:
             values=-np.inf
 
-        if sum:
-            return np.sum(values)
-        else:
-            return values    
+        return values    
         
     return _Jeffreys
 
 
-def init_Jeffreys(mn,mx,sum=False):
+def init_Jeffreys(sum=False):
     
-    def _init_Jeffreys(x):
+    def _init_Jeffreys(nwalkers):
        
-        values=np.random.rand(nwalkers)*2
-        if sum:
-            return np.sum(values)
-        else:
-            return values
+        values=np.random.rand(nwalkers,1)*2
+        return values
     
         
     return _init_Jeffreys
-
-#| export
-class Normal(object):
-    def __init__(self,mean=0,std=1,sum=False):
-        self.mean=mean
-        self.std=std
-        self.sum=sum
-        
-    @property
-    def D(self):
-        return D.norm(self.mean,self.std)
-
-    def rand(self,*args):
-        return np.random.randn(*args)*self.std+self.mean
-    
-    def __call__(self,x):
-        return lognormalpdf(x,self.mean,self.std)
-
-
-
 
 #| export
 class Parameter(object):
@@ -299,9 +320,6 @@ class Parameter(object):
         self.length=1
         self.lower=-np.inf
 
-        self.distribution=exec(self.rest)
-        self.distribution_name=self.rest
-        
         if 'Jeffreys' in self.rest:
             self.lower=0.0
             if initial_value is None:
@@ -311,10 +329,7 @@ class Parameter(object):
             self.lower=0.0
             if initial_value is None:
                 self.initial_value=1.0
-                
-        print("rest bb",self.rest)
-        print("name bb",self.name)
-                
+                                
         if initial_value is None:
             self.initial_value=0.0
         else:
@@ -334,6 +349,7 @@ class StatsModel(object):
         self.data={}
         self.prior_parameters=[]
         self.likelihood_parameters=[]
+        self.data_parameters=[]
         self.nwalkers=100
         self.sampler=None
         self.slices=None
@@ -357,8 +373,8 @@ class StatsModel(object):
         import tokenize
         
         param=Parameter(eqn)
-        self.parameters[param.name]=param
         
+        # look for references to data
         tokens=[token[1] for token in tokenize.generate_tokens(StringIO(eqn).readline) if token[1]]
         found=False
         found_key=None
@@ -368,14 +384,16 @@ class StatsModel(object):
                 found_key=key
                 
         if found:
-            self.likelihood_parameters.append(param)
-            if 'sum' in eqn:
-                self.likelihood_parameters[-1].length=1
+            if tokens[0]==found_key:
+                self.data_parameters.append(param)
+                self.data_parameters[-1].length=len(self.data[found_key])   
             else:
-                self.likelihood_parameters[-1].length=len(self.data[found_key])
-                
+                self.likelihood_parameters.append(param)
+                self.likelihood_parameters[-1].length=1   
+                self.parameters[param.name]=param
         else:
             self.prior_parameters.append(param)
+            self.parameters[param.name]=param
                 
                 
         
@@ -396,9 +414,14 @@ Prior
 Likelihood
 ----------
     %s
+Data Parameters
+---------------
+    %s
         """ % (self.parameters,list(self.extra_params.keys()),list(self.data.keys()),
                [param.eqn for param in self.prior_parameters],
-               [param.eqn for param in self.likelihood_parameters]) 
+               [param.eqn for param in self.likelihood_parameters],
+               [param.eqn for param in self.data_parameters],
+              ) 
         
         return S
     
@@ -438,13 +461,13 @@ Likelihood
             self.sampler = emcee.EnsembleSampler(self.nwalkers, ndim, 
                                                  self._lnprior,args=(self.slices,self.extra_params,))
 
-#            pos=self._init_prior(nwalkers,ndim,self.data,self.slices,self.extra_params)
+            pos=self._init_prior(nwalkers,ndim,self.data,self.slices,self.extra_params)
             
             
-            pos=np.zeros((nwalkers,ndim))
-            for i,key in enumerate(self.parameters):
-                pos[:,self.slices[i]]=np.random.randn(nwalkers,len(self.parameters[key]))*10
-                pos[:,self.slices[i]][pos[:,self.slices[i]]<=self.parameters[key].lower]=self.parameters[key].lower
+            # pos=np.zeros((nwalkers,ndim))
+            # for i,key in enumerate(self.parameters):
+            #     pos[:,self.slices[i]]=np.random.randn(nwalkers,len(self.parameters[key]))*10
+            #     pos[:,self.slices[i]][pos[:,self.slices[i]]<=self.parameters[key].lower]=self.parameters[key].lower
 
 
             self.initial_pos=pos.copy()
@@ -691,7 +714,7 @@ def make_func(self:StatsModel):
 
     for param in self.prior_parameters:
         name=param.name
-        rest=param.rest
+        rest=param.rest        
         s+=f"    {name}=_pos[:,slices.{name}]=init_{rest}(nwalkers)\n" 
 
     for param in self.likelihood_parameters:
@@ -728,10 +751,11 @@ def make_func(self:StatsModel):
 
     s+="\n    _value=0\n\n"
 
-    for param in self.likelihood_parameters:
+    for param in self.likelihood_parameters+self.data_parameters:
         name=param.name
         rest=param.rest
         s+=f"    _value+={rest}({name})\n"
+        
 
     s+="\n    return _value.sum()\n"
 
