@@ -4,23 +4,93 @@
 
 %matplotlib inline
 from pylab import *
+from sie.core import *
+
+def plot_distribution(dist,label=r'\bar{x}',fill_left=None,xlim=None):
+    import pylab as py
+    qmin=.0001
+    qmax=1-qmin
+
+    if xlim is None:
+        xmin=dist.D.ppf(qmin)
+        xmax=dist.D.ppf(qmax)
+    else:
+        xmin,xmax=xlim
+
+    x=linspace(xmin,xmax,200)
+    y=dist.D.pdf(x)
+
+    figure(figsize=(16,5))
+
+    plot(x,y)
+
+    v=dist.D.ppf([2.5/100,50/100,97.5/100])
+    label=label
+    py.title(r'$\hat{%s}^{97.5}_{2.5}=%.3f^{%.3f}_{%.3f}$' % (label,v[1],v[2],v[0]))
+    py.ylabel(r'$p(%s|{\rm true\,\, value})$' % label)
+    py.xlabel(r'$%s$' % label)
+
+    if fill_left:
+        x1=x.min()
+        x2=fill_left
+        xf=linspace(x1,x2,100)
+        yf=dist.D.pdf(xf)
+        fill_between(xf,yf,facecolor='red', alpha=0.2)   
+        plot(xf,yf,'r-')    
+        text(x.min(),0.2,'area = %.4f' % dist.D.cdf(x2))
 
 from sie.mcmc import StatsModel
+
+from sie.distributions import Normal
+
+x=[12,14,16]
+σ=1
+N=len(x)
+dist=Normal(mean=mean(x),std=σ/sqrt(N))
+
+plot_distribution(dist,fill_left=13)
 
 x=array([12,14,16])
 model=StatsModel()
 model.add_data(x=x)
-model.add("μ ~ Uniform(-50,50)")
+model.add("μ ~ Normal(0,50)")  # really broad prior
 model.add("x ~ Normal(μ,1)")
-model.initialize()
 
-model.run_mcmc(1000,repeat=2)
-model.plot_chains()
+
+model.run_mcmc(1000)
+model.plot_chains()  # this is for debugging/making sure things are working
 
 model.plot_distributions()
+text(11.5,.4,f"P(μ<13)={model.P('μ<13'):.3}")
 
-model.P("μ>13")
+model.P("μ<13")
 
-model.plot_distributions("2*μ")
+from sie.distributions import StudentT
+
+x=[12,14,16]
+dof=len(x)
+
+dist=StudentT(mean=mean(x),
+              std=std(x)/sqrt(N-1),
+              dof=N-1)
+
+plot_distribution(dist,fill_left=13,xlim=[9,19])
+
+x=array([12,14,16])
+model=StatsModel()
+model.add_data(x=x)
+model.add("μ ~ Uniform(-50,50)")  # really broad prior
+model.add("σ ~ Jeffreys()")
+model.add("x ~ Normal(μ,σ)")
+
+
+model.run_mcmc(2000,repeat=2)
+#model.plot_chains()
+
+model.plot_distributions('μ',xlim={'μ':[0,25],'σ':[0,30]})
+text(2,.1,f"P(μ<13)={model.P('μ<13'):.3}")
+
+model.plot_distributions('σ',xlim={'μ':[0,25],'σ':[0,30]})
+text(7.5,.1,f"P(σ>5)={model.P('σ>5'):.3}")
 
 

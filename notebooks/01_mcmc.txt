@@ -58,6 +58,7 @@ def timeit(reset=False):
 
 #| export
 def histogram(y,bins=50,plot=True):
+
     N,bins=np.histogram(y,bins)
     
     dx=bins[1]-bins[0]
@@ -357,6 +358,7 @@ class StatsModel(object):
         self.warnings=[]
         self.last_pos=None
         self.extra_params={}
+        self.initialized=False
     
     
     def add_data(self,**kwargs):
@@ -437,6 +439,7 @@ Data Parameters
             slices[key]=np.s_[lengths[i]:lengths[i+1]]
         self.slices=slicetuple(**slices)
         self.parameter_length=sum([len(self.parameters[key]) for key in self.parameters])
+        self.initialized=True
         
     def set_initial_values(self,method='ball',**kwargs):
         N=300
@@ -521,6 +524,9 @@ Data Parameters
         self.samples = self.sampler.chain[:, burnin:, :].reshape((-1, ndim))
         
     def run_mcmc(self,N,repeat=1,**kwargs):
+        if not self.initialized:
+            self.initialize()
+        
         ndim=self.parameter_length
         nwalkers=self.nwalkers
                 
@@ -572,7 +578,6 @@ Data Parameters
         figsize[1]=5/8*figsize[0]*L  # make square
         figsize=kwargs.pop('figsize',figsize)
         
-        print("figsize",figsize)
         fig, axes = py.subplots(len(args), 1, sharex=True, figsize=figsize)
         try:  # is it iterable?
             axes[0]
@@ -634,7 +639,11 @@ Data Parameters
         return self.percentiles(p=[16, 50, 84],*args)
 
 
-    def plot_distributions(self,*args,**kwargs):
+    def plot_distributions(self,*args,xlim=None,**kwargs):
+        from scipy.stats import gaussian_kde
+        
+        
+        
         ndim=self.parameter_length
         
         if not args:
@@ -655,8 +664,21 @@ Data Parameters
                 figure(figsize=(12,4))
 
                 x,y=histogram(sample,bins=200,plot=False)
-                plot(x,y,'.-')
-                fill_between(x,y,facecolor='blue', alpha=0.2)
+                density = gaussian_kde(sample)
+                #plot(x,y,'.-')
+                
+                if xlim is None:
+                    xl=(x[0],x[-1])
+                else:
+                    xl=xlim.get(key,(x[0],x[-1]))
+                
+                xx=linspace(xl[0],xl[1],200)
+                yy=density(xx)
+
+                plot(xx,yy,lw=2)
+                gca().set_xlim(*xl)
+                
+                fill_between(xx,yy,facecolor='blue', alpha=0.2)
 
                 HDI=np.percentile(sample, [2.5, 50, 97.5],axis=0)
                 yl=gca().get_ylim()
@@ -794,7 +816,7 @@ def P(self:StatsModel,S):
         idx=self.slices.__getattribute__(key)
         exec('%s=samples[:,idx]' % key)
 
-    N=float(np.prod(self.samples[:,0].shape))
+    N=float(samples.shape[0])
     result=eval('np.sum(%s)/N' % S)
     return result
 

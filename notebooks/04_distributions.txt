@@ -1,0 +1,280 @@
+#| default_exp distributions
+
+#| export
+from fastcore.utils import patch
+
+#| export
+from scipy.stats import distributions as D
+import numpy as np
+from scipy.special import gammaln,gamma
+
+def logfact(N):
+    return gammaln(N+1)
+
+def tpdf(x,df,mu,sd):
+    t=(x-mu)/float(sd)
+    return gamma((df+1)/2.0)/np.sqrt(df*pi)/gamma(df/2.0)/sd*(1+t**2/df)**(-(df+1)/2.0)
+    
+def logtpdf(x,df,mu,sd):
+    try:
+        N=len(x)
+    except TypeError:
+        N=1
+    
+    t=(x-mu)/float(sd)
+    return N*(gammaln((df+1)/2.0)-0.5*np.log(df*np.pi)-gammaln(df/2.0)-np.log(sd))+(-(df+1)/2.0)*np.sum(np.log(1+t**2/df))
+
+def loguniformpdf(x,mn,mx):
+    if mn < x < mx:
+        return np.log(1.0/(mx-mn))
+    return -np.inf
+
+def logjeffreyspdf(x):
+    
+    if x>0.0:
+        return -np.log(x).sum()
+    return -np.inf
+
+def logcauchypdf(x,x0,scale):
+    return (-np.log(np.pi)-np.log(scale)-np.log(1 + ((x-x0)/scale)**2)).sum()
+
+def loghalfcauchypdf(x,x0,scale):
+    try:
+        N=len(x)
+    except TypeError:
+        N=1
+
+    if x<=0:
+        return -np.inf
+
+    return (-np.log(np.pi)-np.log(scale)-np.log(1 + ((x-x0)/scale)**2)).sum()
+
+def loghalfnormalpdf(x,sig):
+    # x>0: 2/sqrt(2*pi*sigma^2)*exp(-x^2/2/sigma^2)
+    try:
+        N=len(x)
+    except TypeError:
+        N=1
+    if x<=0:
+        return -np.inf
+        
+    return np.log(2)-0.5*np.log(2*np.pi*sig**2)*N - np.sum(x**2/sig**2/2.0)
+
+def lognormalpdf(x,mn,sig,all_positive=False):
+    # 1/sqrt(2*pi*sigma^2)*exp(-x^2/2/sigma^2)
+    try:
+        N=len(x)
+        val=-0.5*np.log(2*np.pi*sig**2)*N - np.sum((x-mn)**2/sig**2/2.0)
+        if all_positive:
+            val[x<0]=-np.inf
+        # print(x,mn,val)
+        # raise ValueError("here")
+        return val
+    except TypeError:
+        N=1
+        # print(x,mn)
+        # raise ValueError("there")
+        val=-0.5*np.log(2*np.pi*sig**2)*N - np.sum((x-mn)**2/sig**2/2.0)
+        if all_positive and x<0:
+            val=-np.inf
+
+        return val
+         
+
+def logexponpdf2(x,scale):
+    if x<=0:
+        return -np.inf
+    return np.log(scale)-x/scale
+
+
+def logbernoullipdf(theta, h, N):
+    return logfact(N)-logfact(h)-logfact(N-h)+np.log(theta)*h+np.log(1-theta)*(N-h)
+
+def logbetapdf(theta, h, N):
+    if theta<0 or theta>1:
+        return -np.inf
+        
+    return logfact(N+1)-logfact(h)-logfact(N-h)+np.log(theta)*h+np.log(1-theta)*(N-h)
+
+def logexponpdf(x,_lambda):
+    # p(x)=l exp(-l x)
+    if x>0.0:
+        return -_lambda*x + np.log(_lambda)
+    return -np.inf
+
+
+import scipy.optimize as op
+
+class StudentT(object):
+    def __init__(self,mean=0,std=1,dof=1):
+        self.mean=mean
+        self.std=std
+        self.dof=dof
+        self.default=mean
+        self.D=D.t(self.dof,loc=self.mean,scale=self.std)
+
+    def rand(self,*args):
+        return np.random.randn(*args)*self.std+self.mean
+    
+    def __call__(self,x):
+        return logtpdf(x,self.dof,self.mean,self.std)
+
+class Normal(object):
+    def __init__(self,mean=0,std=1,all_positive=False):
+        self.mean=mean
+        self.std=std
+        self.default=mean
+        self.all_positive=all_positive
+        self.D=D.norm(self.mean,self.std)
+        
+    def rand(self,*args):
+
+        return np.random.randn(*args)*self.std+self.mean
+    
+    def __call__(self,x):
+        return lognormalpdf(x,self.mean,self.std,self.all_positive)
+
+    def __str__(self):
+        return "Normal(%g,%g)" % (self.mean,self.std)
+
+
+class LogNormal(object):
+    def __init__(self,mean=0,std=1):
+        self.mean=mean
+        self.std=std
+        self.default=mean
+        self.D=D.lognorm(self.mean,self.std)
+
+    def rand(self,*args):
+        return np.random.randn(*args)*self.std+self.mean
+    
+    def __call__(self,x):
+        return loglognormalpdf(x,self.mean,self.std)
+
+
+class Exponential(object):
+    def __init__(self,_lambda=1):
+        self._lambda=_lambda
+        self.D=D.expon(self._lambda)
+
+    def rand(self,*args):
+        return np.random.rand(*args)*2
+        
+    def __call__(self,x):
+        return logexponpdf(x,self._lambda)
+
+
+class HalfCauchy(object):
+    def __init__(self,x0=0,scale=1):
+        self.x0=x0
+        self.scale=scale
+        self.default=x0
+        self.D=D.halfcauchy(loc=self.x0,scale=self.scale) 
+
+    def rand(self,*args):
+        return np.random.rand(*args)*2
+        
+    def __call__(self,x):
+        return loghalfcauchypdf(x,self.x0,self.scale)
+
+
+class HalfNormal(object):
+    def __init__(self,sigma=1):
+        self.sigma=sigma
+        self.D=D.halfnorm(self.sigma)
+
+    def rand(self,*args):
+        return np.random.rand(*args)*2
+        
+    def __call__(self,x):
+        return loghalfnormalpdf(x,self.sigma)
+
+class Uniform(object):
+    def __init__(self,min=0,max=1):
+        self.min=min
+        self.max=max
+        self.default=(min+max)/2.0
+        self.D=D.uniform(self.min,self.max-self.min)
+
+    def rand(self,*args):
+        return np.random.rand(*args)*(self.max-self.min)+self.min
+        
+    def __call__(self,x):
+        return loguniformpdf(x,self.min,self.max)
+
+class Jeffreys(object):
+    def __init__(self):
+        self.default=1.0
+        self.D=None # improper
+
+    def rand(self,*args):
+        return np.random.rand(*args)*2
+        
+    def __call__(self,x):
+        return logjeffreyspdf(x)
+
+class Cauchy(object):
+    def __init__(self,x0=0,scale=1):
+        self.x0=x0
+        self.scale=scale
+        self.default=x0
+        self.D=D.cauchy(loc=self.x0,scale=self.scale) 
+
+    def rand(self,*args):
+        return np.random.rand(*args)*2-1
+        
+    def __call__(self,x):
+        return logcauchypdf(x,self.x0,self.scale)
+
+
+class Beta(object):
+    def __init__(self,h=100,N=100):
+        self.h=h
+        self.N=N
+        self.default=float(h)/N
+        a=self.h+1
+        b=(self.N-self.h)+1
+        self.D=D.beta(a,b)
+
+
+    def rand(self,*args):
+        return np.random.rand(*args)
+        
+    def __call__(self,x):
+        return logbetapdf(x,self.h,self.N)
+
+class Bernoulli(object):
+    def __init__(self,h=100,N=100):
+        self.h=h
+        self.N=N
+        self.default=float(h)/N
+        self.D=D.bernoulli(self.default)
+
+    def rand(self,*args):
+        return np.random.rand(*args)
+        
+    def __call__(self,x):
+        return logbernoullipdf(x,self.h,self.N)
+     
+
+
+class UniformLog(object):
+    def __init__(self,min=0,max=1):
+        self.min=min
+        self.max=max
+        self.default=np.exp((min+max)/2.0)
+       
+    def rand(self,*args):
+        return np.exp(np.random.rand(*args)*(self.max-self.min)+self.min)
+        
+    def __call__(self,x):
+        if x<=0.0:
+            return -np.inf
+        return loguniformpdf(log(x),self.min,self.max)
+
+
+
+#| hide
+import nbdev; nbdev.nbdev_export()
+
+
