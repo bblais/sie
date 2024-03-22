@@ -1,0 +1,26 @@
+#| hide
+#skip
+! [ -e /content ] && pip install -Uqq pyndamics3 emcee # upgrade pyndamics3 on colab
+
+%matplotlib inline
+from pylab import *
+
+from sie.mcmc import StatsModel
+
+x=array([12,14,16])
+model=StatsModel()
+model.add_data(x=x)
+model.add("μ ~ Uniform(-50,50)")
+model.add("x ~ Normal(μ,1)")
+model.initialize()
+
+model.run_mcmc(1000,repeat=2)
+model.plot_chains()
+
+model.plot_distributions()
+
+model.P("μ>13")
+
+model.plot_distributions("2*μ")
+
+

@@ -34,13 +34,15 @@ len(x)
 
 model=StatsModel()
 model.add_data(x=x)
-model.add("m ~ Normal(0,10)")
+model.add("m ~ Normal(0,20)")
+#model.add("m ~ Uniform(-10,10)")
 model.add("x ~ Normal(m,1)")
 model.initialize()
 
 print(model.make_func())
 
-model.run_mcmc(800,repeat=3)
+model.burn_percentage=25
+model.run_mcmc(800,repeat=1)
 model.plot_chains()
 
 
@@ -137,6 +139,10 @@ print(model.make_func())
 model.run_mcmc(800,repeat=3)
 model.plot_chains()
 
+model.P("m>0")
+
+model.plot_distributions("2*m")
+
 self=model
 θ=self.initial_pos[:20,:]
 θ
@@ -169,9 +175,6 @@ for θ in array([[-14.826862,  -2.981727,   1.045552],
     
 
 
-
-np.set_printoptions(precision=20)
-θ
 
 from nbdev.quarto import nbdev_docs
 nbdev_docs(skip_file_glob='*99*.ipynb')

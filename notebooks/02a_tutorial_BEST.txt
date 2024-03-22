@@ -17,18 +17,20 @@ placebo = (99,101,100,101,102,100,97,101,104,101,102,102,100,105,88,101,100,
 model=StatsModel()
 model.add_data(drug=drug,placebo=placebo)
 
+pooled=np.concatenate([drug,placebo])
+S=mean(pooled)
+M=std(pooled)                      
+model.extra(S=S,M=M,mn=0.001*S,mx=1000*S)
+
+
 model.add("μ_drug ~ Normal(M,1000*S)")
 model.add("μ_placebo ~ Normal(M,1000*S)")
 model.add("σ_drug ~ Uniform(mn,mx)")
 model.add("σ_placebo ~ Uniform(mn,mx)")
 model.add("ν ~ Exponential(29,offset=1)")
-model.add("res_drug ~ StudentT(ν,drug-μ_drug,σ_drug,sum=True)")
-model.add("res_placebo ~ StudentT(ν,placebo-μ_placebo,σ_placebo,sum=True)")
+model.add("drug ~ StudentT(ν,μ_drug,σ_drug)")
+model.add("placebo ~ StudentT(ν,μ_placebo,σ_placebo)")
 
-pooled=np.concatenate([drug,placebo])
-S=mean(pooled)
-M=std(pooled)                      
-model.extra(S=S,M=M,mn=0.001*S,mx=1000*S)
 
 model.initialize()
 model

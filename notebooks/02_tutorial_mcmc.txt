@@ -17,6 +17,8 @@ model.initialize()
 model.run_mcmc(800,repeat=2)
 model.plot_chains()
 
+
+
 print(model.function_str)
 
 model.plot_distributions()

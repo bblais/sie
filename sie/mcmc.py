@@ -153,7 +153,7 @@ def Uniform(mn,mx,sum=False):
 
 def init_Uniform(mn,mx,sum=False):
     
-    def _init_Uniform(x):
+    def _init_Uniform(nwalkers):
        
     
         values=np.random.rand(nwalkers,1)*(mx-mn)+mn
@@ -358,7 +358,7 @@ class StatsModel(object):
         self.nwalkers=100
         self.sampler=None
         self.slices=None
-        self.burn_percentage=0.25
+        self.burn_percentage=25
         self.warnings=[]
         self.last_pos=None
         self.extra_params={}
@@ -484,23 +484,26 @@ Data Parameters
                 #warnings.simplefilter("always")
                 # Call your function that issues a warning        
                 self.sampler.run_mcmc(pos, N,**kwargs)
-
+            
             self.warnings.extend(warning_list)
+            self.burn_N=int(N*self.burn_percentage/100.0)
 
             print("Done.")
             print( timeit())
             
             # assign the median back into the simulation values
-            self.burn()
-            self.median_values=np.percentile(self.samples,50,axis=0)
+            self.samples = self.sampler.get_chain(discard=self.burn_N)
+            #self.sampler.chain[:, :, :].reshape((-1, ndim))            
+            self.median_values=np.percentile(self.samples.reshape((-1, ndim)),50,axis=0)
 
-            self.last_pos=self.sampler.chain[:,-1,:]
+            self.last_pos=self.samples[-1,:,:]
             
             
         elif method=='samples':
             print("Samples")
-            lower,upper=np.percentile(self.samples, [16,84],axis=0)            
-            subsamples=self.samples[((self.samples>=lower) & (self.samples<=upper)).all(axis=1),:]
+            samples=self.samples.reshape((-1, ndim))
+            lower,upper=np.percentile(samples, [16,84],axis=0)            
+            subsamples=samples[((samples>=lower) & (samples<=upper)).all(axis=1),:]
             idx=np.random.randint(subsamples.shape[0],size=self.last_pos.shape[0])
             self.last_pos=subsamples[idx,:]            
         elif method=='median':            
@@ -525,35 +528,37 @@ Data Parameters
     def run_mcmc(self,N,repeat=1,**kwargs):
         ndim=self.parameter_length
         nwalkers=self.nwalkers
-        
+                
         if self.last_pos is None:
             self.set_initial_values('prior')
         
-
+        
         for i in range(repeat):        
-            timeit(reset=True)
             self.sampler = emcee.EnsembleSampler(self.nwalkers, ndim, self,)
-
+            timeit(reset=True)
             if repeat==1:
                 print("Running MCMC...")
             else:
                 print("Running MCMC %d/%d..." % (i+1,repeat))
 
             self.sampler.run_mcmc(self.last_pos, N,**kwargs)
+                                             
+                                             
+            self.burn_N=int(N*self.burn_percentage/100.0)
+            self.samples = self.sampler.get_chain(discard=self.burn_N)
+            
             print("Done.")
             print (timeit())
 
             if repeat>1:
-                self.burn()
                 self.set_initial_values('samples')  # reset using the 16-84 percentile values from the samples
 
 
         # assign the median back into the simulation values
-        self.burn()
-        self.median_values=np.percentile(self.samples,50,axis=0)
+        self.median_values=np.percentile(self.samples.reshape((-1, ndim)),50,axis=0)
         theta=self.median_values
 
-        self.last_pos=self.sampler.chain[:,-1,:]
+        #self.last_pos=self.sampler.chain[:,-1,:]
     
         
         
@@ -584,9 +589,9 @@ Data Parameters
         count=0
         for key in args:
             s=self.slices.__getattribute__(key)
-            sub_sample=self.sampler.chain[:, :, s]
+            sub_sample=self.samples[:, :, s]
             for i in range(len(self.parameters[key])):
-                sample=sub_sample[:, :, i].T
+                sample=sub_sample[:, :, i]
                 ax=axes[count]
                 ax.plot(sample, color="k", alpha=0.2,**kwargs)
                 
@@ -603,6 +608,8 @@ Data Parameters
     def _lnposterior(self,θ):
         _value=0
         _value+=self._lnprior(θ,self.slices,self.extra_params)
+        if not np.isfinite(_value):
+            return -np.inf
         _value+=self._lnlikelihood(θ,self.data,self.slices,self.extra_params)
         
         return np.sum(_value)
@@ -617,12 +624,13 @@ Data Parameters
             for arg in args:
                 assert arg in self.parameters
         
-        self.median_values=np.percentile(self.samples,50,axis=0)
+        samples=self.samples.reshape((-1, ndim))
+        self.median_values=np.percentile(samples,50,axis=0)
         
         result={}
         for key in args:
             s=self.slices.__getattribute__(key)
-            sub_sample=self.samples[:,s]
+            sub_sample=samples[:,s]
             result[key]=np.percentile(sub_sample,[16,50,84],axis=0)
             
         return result
@@ -632,18 +640,22 @@ Data Parameters
 
 
     def plot_distributions(self,*args,**kwargs):
+        ndim=self.parameter_length
+        
         if not args:
             args=[key for key in self.parameters if len(self.parameters[key])==1]
-        else:
-            for arg in args:
-                assert arg in self.parameters
-
+        
+        samples=self.samples.reshape((-1, ndim))
+        
+        for key in self.parameters:
+            idx=self.slices.__getattribute__(key)
+            exec('%s=samples[:,idx]' % key)
+        
         result=[]
         for key in args:
-            s=self.slices.__getattribute__(key)
-            sub_sample=self.samples[:,s]
-            for i in range(len(self.parameters[key])):
-                sample=sub_sample[:, i].ravel()
+            values=eval(f"{key}")
+            for i in range(values.shape[1]):
+                sample=values[:, i].ravel()
             
                 figure(figsize=(12,4))
 
@@ -664,10 +676,7 @@ Data Parameters
                              fontsize=12)
 
                 ylabel(r'$p(%s|{\rm data})$' % key)
-                if len(self.parameters[key])==1:
-                    gca().set_xlabel(f'{key}' )
-                else:
-                    gca().set_xlabel(f'{key}$_{i}$')
+                gca().set_xlabel(f'{key}' )
     
                 result.append((key,i,HDI))
         
@@ -776,4 +785,19 @@ def make_func(self:StatsModel):
     self._lnlikelihood=locals()['_lnlikelihood']
 
     return s
+
+
+# %% ../notebooks/01_mcmc.ipynb 12
+@patch
+def P(self:StatsModel,S):
+    ndim=self.parameter_length
+    samples=self.samples.reshape((-1, ndim))
+    
+    for key in self.parameters:
+        idx=self.slices.__getattribute__(key)
+        exec('%s=samples[:,idx]' % key)
+
+    N=float(np.prod(self.samples[:,0].shape))
+    result=eval('np.sum(%s)/N' % S)
+    return result
 
