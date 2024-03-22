@@ -93,4 +93,16 @@ text(2,.1,f"P(μ<13)={model.P('μ<13'):.3}")
 model.plot_distributions('σ',xlim={'μ':[0,25],'σ':[0,30]})
 text(7.5,.1,f"P(σ>5)={model.P('σ>5'):.3}")
 
+x=array([12,14,16])
+model=StatsModel()
+model.add_data(x=x)
+model.add("μ ~ Uniform(-50,50)")  # really broad prior
+model.add("γ ~ Jeffreys()")
+model.add("x ~ Cauchy(μ,γ)")
 
+
+model.run_mcmc(2000,repeat=2)
+#model.plot_chains()
+
+model.plot_distributions('μ',xlim={'μ':[0,25],'σ':[0,30]})
+text(2,.1,f"P(μ<13)={model.P('μ<13'):.3}")
