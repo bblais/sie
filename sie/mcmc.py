@@ -197,10 +197,8 @@ def Exponential(scale,offset=0,sum=False):
             if sum:
                 if any(x<offset):
                     return -np.inf
-                if any(x>mx):
-                    return -np.inf
                 
-            values=-np.log(scale)-(x-offset)/scale 
+            values=np.log(scale)-(x-offset)/scale 
             
             if sum:
                 return values.sum()
@@ -213,7 +211,7 @@ def Exponential(scale,offset=0,sum=False):
             if x<=offset:
                 return -np.inf
             
-            return -np.log(scale)-(x-offset)/scale            
+            return np.log(scale)-(x-offset)/scale            
             
         
         
@@ -385,6 +383,8 @@ class StatsModel(object):
         self.last_pos=None
         self.extra_params={}
         self.initialized=False
+        self.max_iterator=1000  # for the sample iterator
+        
     
     
     def add_data(self,**kwargs):
@@ -644,6 +644,8 @@ Data Parameters
         return self._lnposterior(θ)
     
     def percentiles(self,p=[16, 50, 84],*args):
+        ndim=self.parameter_length
+        
         if not args:
             args=[key for key in self.parameters if len(self.parameters[key])==1]
         else:
@@ -843,4 +845,27 @@ def P(self:StatsModel,S):
     N=float(samples.shape[0])
     result=eval('np.sum(%s)/N' % S)
     return result
+
+@patch
+def get_samples(self:StatsModel,*args):
+    
+    ndim=self.parameter_length
+    samples=self.samples.reshape((-1, ndim))
+    
+    result=[]
+    for key in args:
+        idx=self.slices.__getattribute__(key)
+        result.append(samples[:,idx])
+
+    return result
+
+
+@patch
+def sample_iterator(self:StatsModel,*args):
+    s=self.get_samples(*args)
+    L=len(s[0])
+    if L>self.max_iterator:
+        L=self.max_iterator
+    for i in range(L):
+        yield [ss[i] for ss in s]        
 
